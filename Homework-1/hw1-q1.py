@@ -46,8 +46,17 @@ class Perceptron(LinearModel):
         y_i (scalar): the gold label for that example
         other arguments are ignored
         """
-        raise NotImplementedError # Q1.1 (a)
-
+        # Q1.1a
+        
+        # calculate predicted y
+        y_hat = self.predict(x_i)
+        eta = kwargs.get("learning_rate", 1)
+        
+        # update weights if prediction is wrong
+        if (y_hat != y_i):
+            self.W[y_i,:] += eta * x_i
+            self.W[y_hat,:] -= eta * x_i
+        #raise NotImplementedError
 
 class LogisticRegression(LinearModel):
     def update_weight(self, x_i, y_i, learning_rate=0.001, l2_penalty=0.0, **kwargs):
@@ -56,7 +65,23 @@ class LogisticRegression(LinearModel):
         y_i: the gold label for that example
         learning_rate (float): keep it at the default value for your plots
         """
-        raise NotImplementedError # Q1.2 (a,b)
+        # Q1.2 (a,b)
+
+        if l2_penalty == 0.0:
+
+            # Get probability scores according to the model (num_labels x 1).
+            label_scores = np.expand_dims(self.W.dot(x_i), axis = 1)
+            
+            # One-hot encode true label (num_labels x 1).
+            y_one_hot = np.zeros((np.size(self.W, 0),1))
+            y_one_hot[y_i] = 1
+
+            # Softmax function
+            # This gives the label probabilities according to the model (num_labels x 1).
+            label_probabilities = np.exp(label_scores) / np.sum(np.exp(label_scores))
+            
+            # SGD update. W is num_labels x num_features.
+            self.W += learning_rate * (y_one_hot - label_probabilities).dot(np.expand_dims(x_i, axis = 1).T)
 
 
 class MLP(object):
