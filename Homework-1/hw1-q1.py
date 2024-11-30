@@ -61,14 +61,12 @@ class Perceptron(LinearModel):
 class LogisticRegression(LinearModel):
     def update_weight(self, x_i, y_i, learning_rate=0.001, l2_penalty=0.0, **kwargs):
         """
-        Update weights using logistic regression gradient with optional L2 regularization.
-
-        Parameters:
-        x_i (ndarray): A single training example (1D array of n_features).
-        y_i (int): The true label (scalar).
-        learning_rate (float): Learning rate for gradient descent.
-        l2_penalty (float): Regularization strength (if 0, no regularization).
+        x_i (n_features): a single training example
+        y_i: the gold label for that example
+        learning_rate (float): keep it at the default value for your plots
         """
+        # Q1.2a
+        
         # Get probability scores according to the model (num_labels x 1).
         label_scores = np.expand_dims(self.W.dot(x_i), axis=1)
 

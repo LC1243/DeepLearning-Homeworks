@@ -1,1 +1,7 @@
 Homework-1/__pycache__/
+
+# Ignore all .pdf files in the Homework-1 folder
+Homework-1/*.pdf
+
+# Exception for Homework-1/homework1.pdf
+!Homework-1/homework1.pdf
