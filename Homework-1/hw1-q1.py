@@ -66,7 +66,7 @@ class LogisticRegression(LinearModel):
         learning_rate (float): keep it at the default value for your plots
         """
         # Q1.2a
-        
+
         # Get probability scores according to the model (num_labels x 1).
         label_scores = np.expand_dims(self.W.dot(x_i), axis=1)
 
@@ -92,12 +92,83 @@ class LogisticRegression(LinearModel):
 class MLP(object):
     def __init__(self, n_classes, n_features, hidden_size):
         # Initialize an MLP with a single hidden layer.
-        raise NotImplementedError # Q1.3 (a)
+        self.W = [[np.random.normal(0.1, 0.1, (hidden_size, n_features))],
+                  [np.random.normal(0.1, 0.1, (n_classes, hidden_size))]]
+        
+        self.b = [np.zeros(hidden_size), np.zeros(n_classes)]
+        # raise NotImplementedError # Q1.3 (a)
+
+    def relu(self, x):
+        return np.maximum(0, x)
+    
+    def relu_derivative(self, x):
+        return np.where(x > 0, 1, 0)
+    
+    def softmax(self, x):
+        # Numerically stable softmax (subtraction of max(x) to avoid overflows)
+        exps = np.exp(x - np.max(x))
+        return exps / np.sum(exps)
+    
+    #Assuming y is one-hot encoded and y_hat is the output of the last layer
+    def compute_loss(self, y_hat, y):
+        #Cross entropy loss
+        return -np.sum(y * np.log(y_hat))
+    
+    def forward_pass(self, x):
+        num_layers = len(self.W)
+        hidden_layers = []
+
+        for i in range(num_layers):
+            h = x if i == 0 else hidden_layers[i - 1]
+            z = self.W[i].dot(h) + self.b[i]
+            
+            #Apply relu activation to hidden layers
+            if i < num_layers - 1:
+                hidden_layers.append(self.relu(z))
+        
+        #z is the output of the last layer before activation function
+        return hidden_layers, z
+    
+
+    def backward_propagation(self, x, y, hidden_layers, z):
+        num_layers = len(self.W)
+
+        # Compute the gradient of the loss with respect to the output of the last layer
+        gradient_z = self.softmax(z) - y
+
+        gradient_weights, gradient_biases = [], []
+
+        for i in range(num_layers - 1, -1, -1):
+
+            # Gradient of hidden layer weights and biases
+            h = x if i == 0 else hidden_layers[i - 1]
+            gradient_weights.append(gradient_z[:, None].dot(h[:, None].T))
+            gradient_biases.append(gradient_z)
+
+            # Gradient of hidden layer below.
+            gradient_h = self.W[i].T.dot(gradient_z)
+            
+            # Gradient of hidden layer below before activation.
+            gradient_z = gradient_h * self.relu_derivative(h)
+
+
+        return gradient_weights.reverse(), gradient_biases.reverse()     
+
+
 
     def predict(self, X):
         # Compute the forward pass of the network. At prediction time, there is
         # no need to save the values of hidden nodes.
-        raise NotImplementedError # Q1.3 (a)
+        # Q1.3 (a)
+        
+        predictions = []
+        for x in X:
+            #Forward pass and get the output (class with highest probability)
+            _, z = self.forward_pass(x)
+            y_hat = np.argmax(z)
+            predictions.append(y_hat)
+
+        return np.array(predictions)
 
     def evaluate(self, X, y):
         """
@@ -114,8 +185,32 @@ class MLP(object):
         """
         Dont forget to return the loss of the epoch.
         """
-        raise NotImplementedError # Q1.3 (a)
+        # Q1.3 (a)
+        num_layers = len(self.W)
+        total_loss = 0
+        
+        # For each observation and target
+        for x_i, y_i in zip(X, y):
 
+            hidden_layers, output = self.forward_pass(x_i)
+            
+            # Compute Loss and Update total loss
+            y_one_hot = np.zeros(output.shape)
+            y_one_hot[y_i] = 1
+
+            loss = self.compute_loss(output, y_one_hot)
+            total_loss += loss
+            
+            # Compute back propagation
+            grad_weights, grad_biases = self.backward_propagation(x_i, y_one_hot, hidden_layers, output)
+            
+            # Update weights
+            for i in range(num_layers):
+                self.W[i] -= learning_rate * grad_weights[i]
+                self.b[i] -= learning_rate * grad_biases[i]
+                
+        return total_loss
+        # raise NotImplementedError 
 
 def plot(epochs, train_accs, val_accs, filename=None):
     plt.xlabel('Epoch')
