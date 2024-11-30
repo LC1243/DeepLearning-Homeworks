@@ -61,27 +61,34 @@ class Perceptron(LinearModel):
 class LogisticRegression(LinearModel):
     def update_weight(self, x_i, y_i, learning_rate=0.001, l2_penalty=0.0, **kwargs):
         """
-        x_i (n_features): a single training example
-        y_i: the gold label for that example
-        learning_rate (float): keep it at the default value for your plots
+        Update weights using logistic regression gradient with optional L2 regularization.
+
+        Parameters:
+        x_i (ndarray): A single training example (1D array of n_features).
+        y_i (int): The true label (scalar).
+        learning_rate (float): Learning rate for gradient descent.
+        l2_penalty (float): Regularization strength (if 0, no regularization).
         """
-        # Q1.2 (a,b)
+        # Get probability scores according to the model (num_labels x 1).
+        label_scores = np.expand_dims(self.W.dot(x_i), axis=1)
 
-        if l2_penalty == 0.0:
+        # One-hot encode the true label (num_labels x 1).
+        y_one_hot = np.zeros((np.size(self.W, 0), 1))
+        y_one_hot[y_i] = 1
 
-            # Get probability scores according to the model (num_labels x 1).
-            label_scores = np.expand_dims(self.W.dot(x_i), axis = 1)
-            
-            # One-hot encode true label (num_labels x 1).
-            y_one_hot = np.zeros((np.size(self.W, 0),1))
-            y_one_hot[y_i] = 1
+        # Compute softmax probabilities (num_labels x 1).
+        label_probabilities = np.exp(label_scores) / np.sum(np.exp(label_scores))
 
-            # Softmax function
-            # This gives the label probabilities according to the model (num_labels x 1).
-            label_probabilities = np.exp(label_scores) / np.sum(np.exp(label_scores))
-            
-            # SGD update. W is num_labels x num_features.
-            self.W += learning_rate * (y_one_hot - label_probabilities).dot(np.expand_dims(x_i, axis = 1).T)
+        # Compute the gradient from the loss (without reg)
+        gradient = (y_one_hot - label_probabilities).dot(np.expand_dims(x_i, axis=1).T)
+       
+        # Add L2 regularization to the gradient if l2_penalty > 0
+        if l2_penalty > 0.0:
+            regularization_gradient = l2_penalty * self.W
+            gradient -= regularization_gradient
+        
+        # Update the weights using gradient descent
+        self.W += learning_rate * gradient
 
 
 class MLP(object):
