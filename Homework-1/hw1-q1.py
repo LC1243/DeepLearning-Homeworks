@@ -92,8 +92,8 @@ class LogisticRegression(LinearModel):
 class MLP(object):
     def __init__(self, n_classes, n_features, hidden_size):
         # Initialize an MLP with a single hidden layer.
-        self.W = [[np.random.normal(0.1, 0.1, (hidden_size, n_features))],
-                  [np.random.normal(0.1, 0.1, (n_classes, hidden_size))]]
+        self.W = [np.random.normal(0.1, 0.1, (hidden_size, n_features)),
+                  np.random.normal(0.1, 0.1, (n_classes, hidden_size))]
         
         self.b = [np.zeros(hidden_size), np.zeros(n_classes)]
         # raise NotImplementedError # Q1.3 (a)
@@ -111,8 +111,16 @@ class MLP(object):
     
     #Assuming y is one-hot encoded and y_hat is the output of the last layer
     def compute_loss(self, y_hat, y):
-        #Cross entropy loss
-        return -np.sum(y * np.log(y_hat))
+        # compute negative log-likelihood
+        neg_log_likelihood = np.dot(-y.T, y_hat)
+        
+        # stable log-sum-exp computation
+        max_output = np.max(y_hat)
+        log_sum_exp = np.log(np.sum(np.exp(y_hat - max_output))) + max_output
+        
+        # total loss
+        loss = neg_log_likelihood + log_sum_exp
+        return loss
     
     def forward_pass(self, x):
         num_layers = len(self.W)
@@ -151,10 +159,11 @@ class MLP(object):
             # Gradient of hidden layer below before activation.
             gradient_z = gradient_h * self.relu_derivative(h)
 
+        # Reverse the lists before returning
+        gradient_weights.reverse()
+        gradient_biases.reverse()    
 
-        return gradient_weights.reverse(), gradient_biases.reverse()     
-
-
+        return gradient_weights, gradient_biases     
 
     def predict(self, X):
         # Compute the forward pass of the network. At prediction time, there is
