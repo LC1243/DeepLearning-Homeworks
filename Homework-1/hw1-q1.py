@@ -112,15 +112,20 @@ class MLP(object):
     #Assuming y is one-hot encoded and y_hat is the output of the last layer
     def compute_loss(self, y_hat, y):
         # compute negative log-likelihood
-        neg_log_likelihood = np.dot(-y.T, y_hat)
+        #neg_log_likelihood = np.dot(-y.T, y_hat)
         
         # stable log-sum-exp computation
-        max_output = np.max(y_hat)
-        log_sum_exp = np.log(np.sum(np.exp(y_hat - max_output))) + max_output
+        #max_output = np.max(y_hat)
+        #log_sum_exp = np.log(np.sum(np.exp(y_hat - max_output))) + max_output
         
         # total loss
-        loss = neg_log_likelihood + log_sum_exp
-        return loss
+        #loss = neg_log_likelihood + log_sum_exp
+        #return loss
+    
+        probs = self.softmax(y_hat)
+        epsilon = 1e-12
+        loss = -np.sum(y * np.log(probs + epsilon))
+        return loss 
     
     def forward_pass(self, x):
         num_layers = len(self.W)
