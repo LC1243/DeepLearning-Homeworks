@@ -65,6 +65,29 @@ class FeedforwardNetwork(nn.Module):
         attributes that each FeedforwardNetwork instance has. Note that nn
         includes modules for several activation functions and dropout as well.
         """
+        super().__init__()
+
+        if activation_type == 'tanh':
+            self.activation_function = nn.Tanh()    
+        else:
+            self.activation_function = nn.ReLU()
+        
+        self.FeedforwardNetwork = nn.Sequential()
+        self.dropout = nn.Dropout(p=dropout)
+
+        # Input layer
+        self.FeedforwardNetwork.append(nn.Linear(n_features, hidden_size))
+        self.FeedforwardNetwork.append(self.activation_function)
+        self.FeedforwardNetwork.append(self.dropout)
+
+        # Hidden layers
+        for _ in range(layers - 1):
+            self.FeedforwardNetwork.append(nn.Linear(hidden_size, hidden_size))
+            self.FeedforwardNetwork.append(self.activation_function)
+            self.FeedforwardNetwork.append(self.dropout)
+
+        # Output layer
+        self.FeedforwardNetwork.append(nn.Linear(hidden_size, n_classes))    
         # raise NotImplementedError
 
     def forward(self, x, **kwargs):
@@ -75,6 +98,7 @@ class FeedforwardNetwork(nn.Module):
         the output logits from x. This will include using various hidden
         layers, pointwise nonlinear functions, and dropout.
         """
+        return self.FeedforwardNetwork(x)
         # raise NotImplementedError
 
 
@@ -164,7 +188,7 @@ def main():
     parser.add_argument('-hidden_size', type=int, default=200)
     parser.add_argument('-layers', type=int, default=2)
     parser.add_argument('-learning_rate', type=float, default=0.002)
-    parser.add_argument('-l2_decay', type=float, default=0.01)
+    parser.add_argument('-l2_decay', type=float, default=0.0)
     parser.add_argument('-dropout', type=float, default=0.3)
     parser.add_argument('-momentum', type=float, default=0.0)
     parser.add_argument('-activation',
