@@ -27,6 +27,7 @@ class LogisticRegression(nn.Module):
         https://pytorch.org/docs/stable/nn.html
         """
         super().__init__()
+        self.log_reg = nn.Linear(n_features, n_classes)
         # In a pytorch module, the declarations of layers needs to come after
         # the super __init__ line, otherwise the magic doesn't work.
 
@@ -44,7 +45,8 @@ class LogisticRegression(nn.Module):
         forward pass -- this is enough for it to figure out how to do the
         backward pass.
         """
-        raise NotImplementedError
+        return self.log_reg(x)
+        # raise NotImplementedError
 
 
 class FeedforwardNetwork(nn.Module):
@@ -63,9 +65,7 @@ class FeedforwardNetwork(nn.Module):
         attributes that each FeedforwardNetwork instance has. Note that nn
         includes modules for several activation functions and dropout as well.
         """
-        super().__init__()
-        # Implement me!
-        raise NotImplementedError
+        # raise NotImplementedError
 
     def forward(self, x, **kwargs):
         """
@@ -75,7 +75,7 @@ class FeedforwardNetwork(nn.Module):
         the output logits from x. This will include using various hidden
         layers, pointwise nonlinear functions, and dropout.
         """
-        raise NotImplementedError
+        # raise NotImplementedError
 
 
 def train_batch(X, y, model, optimizer, criterion, **kwargs):
@@ -96,7 +96,19 @@ def train_batch(X, y, model, optimizer, criterion, **kwargs):
     This function should return the loss (tip: call loss.item()) to get the
     loss as a numerical value that is not part of the computation graph.
     """
-    raise NotImplementedError
+    # clear the gradients
+    optimizer.zero_grad()
+    # compute the model output
+    yhat = model(X)
+    # calculate loss
+    loss = criterion(yhat, y)
+    # credit assignment
+    loss.backward()
+    # update model weights
+    optimizer.step()
+    
+    return loss.item()
+    # raise NotImplementedError
 
 
 def predict(model, X):
@@ -152,7 +164,7 @@ def main():
     parser.add_argument('-hidden_size', type=int, default=200)
     parser.add_argument('-layers', type=int, default=2)
     parser.add_argument('-learning_rate', type=float, default=0.002)
-    parser.add_argument('-l2_decay', type=float, default=0.0)
+    parser.add_argument('-l2_decay', type=float, default=0.01)
     parser.add_argument('-dropout', type=float, default=0.3)
     parser.add_argument('-momentum', type=float, default=0.0)
     parser.add_argument('-activation',
