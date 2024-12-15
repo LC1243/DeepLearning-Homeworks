@@ -111,20 +111,9 @@ class MLP(object):
     
     #Assuming y is one-hot encoded and y_hat is the output of the last layer
     def compute_loss(self, y_hat, y):
-        # compute negative log-likelihood
-        #neg_log_likelihood = np.dot(-y.T, y_hat)
-        
-        # stable log-sum-exp computation
-        #max_output = np.max(y_hat)
-        #log_sum_exp = np.log(np.sum(np.exp(y_hat - max_output))) + max_output
-        
-        # total loss
-        #loss = neg_log_likelihood + log_sum_exp
-        #return loss
-    
         probs = self.softmax(y_hat)
         epsilon = 1e-12
-        loss = -np.sum(y * np.log(probs + epsilon))
+        loss = -y.dot(np.log(probs + epsilon))
         return loss 
     
     def forward_pass(self, x):
@@ -140,14 +129,15 @@ class MLP(object):
                 hidden_layers.append(self.relu(z))
         
         #z is the output of the last layer before activation function
-        return hidden_layers, z
+        return z, hidden_layers
     
 
     def backward_propagation(self, x, y, hidden_layers, z):
         num_layers = len(self.W)
 
         # Compute the gradient of the loss with respect to the output of the last layer
-        gradient_z = self.softmax(z) - y
+        probs = self.softmax(z)
+        gradient_z = probs - y
 
         gradient_weights, gradient_biases = [], []
 
@@ -178,11 +168,12 @@ class MLP(object):
         predictions = []
         for x in X:
             #Forward pass and get the output (class with highest probability)
-            _, z = self.forward_pass(x)
+            z, _ = self.forward_pass(x)
             y_hat = np.argmax(z)
             predictions.append(y_hat)
 
-        return np.array(predictions)
+        predictions = np.array(predictions)
+        return predictions
 
     def evaluate(self, X, y):
         """
@@ -206,7 +197,7 @@ class MLP(object):
         # For each observation and target
         for x_i, y_i in zip(X, y):
 
-            hidden_layers, output = self.forward_pass(x_i)
+            output, hidden_layers = self.forward_pass(x_i)
             
             # Compute Loss and Update total loss
             y_one_hot = np.zeros(output.shape)
