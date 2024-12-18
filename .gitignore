@@ -5,3 +5,13 @@ Homework-1/*.pdf
 
 # Exception for Homework-1/homework1.pdf
 !Homework-1/homework1.pdf
+
+intel_landscapes.npz
+
+.env
+.venv
+env/
+venv/
+ENV/
+env.bak/
+venv.bak/
