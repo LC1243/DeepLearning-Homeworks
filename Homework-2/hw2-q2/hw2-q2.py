@@ -88,8 +88,8 @@ class CNN(nn.Module):
         x = self.conv_block3(x)
 
         # Flattent output of the last conv block
-        #x = x.view(x.size(0), -1)
-        x = self.flatten(x)
+        x = x.view(x.size(0), -1)
+        #x = self.flatten(x)
 
         # Implement MLP part
         x = self.fc1(x)
