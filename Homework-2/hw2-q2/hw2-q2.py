@@ -69,7 +69,7 @@ class CNN(nn.Module):
         self.flatten = nn.Flatten()
 
         # flattened_size with the calculated size
-        self.fc1 = nn.Linear(4608, fc1_out_dim)  
+        self.fc1 = nn.Linear(2048, fc1_out_dim)  
         self.fc2 = nn.Linear(fc1_out_dim, fc2_out_dim)
         # 6 is the number of classes
         self.fc3 = nn.Linear(fc2_out_dim, 6) 
@@ -89,8 +89,7 @@ class CNN(nn.Module):
 
         # Flattent output of the last conv block
         x = x.view(x.size(0), -1)
-        #x = self.flatten(x)
-
+        
         # Implement MLP part
         x = self.fc1(x)
         x = self.relu(x)
@@ -100,8 +99,7 @@ class CNN(nn.Module):
         x = self.fc3(x)
 
         # For Q2.2 implement global average pooling
-        
-
+    
         return F.log_softmax(x, dim=1)
  
 
