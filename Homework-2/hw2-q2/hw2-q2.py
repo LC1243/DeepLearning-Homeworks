@@ -34,7 +34,7 @@ class ConvBlock(nn.Module):
         self.dropout = nn.Dropout(dropout)
         
         # Q2.2 Initialize batchnorm layer 
-        # self.batch_norm = nn.BatchNorm2d(out_channels) if batch_norm else nn.Identity()
+        self.batch_norm = nn.BatchNorm2d(out_channels) if batch_norm else nn.Identity()
 
         #raise NotImplementedError
 
@@ -42,6 +42,7 @@ class ConvBlock(nn.Module):
         # input for convolution is [b, c, w, h] 
         # Apply the layers in order: convolution, activation, max pooling, and dropout
         x = self.conv(x)
+        x = self.batch_norm(x)
         x = self.activation(x)
         x = self.maxpool(x)
         x = self.dropout(x)
@@ -69,15 +70,21 @@ class CNN(nn.Module):
         self.flatten = nn.Flatten()
 
         # flattened_size with the calculated size
-        self.fc1 = nn.Linear(2048, fc1_out_dim)  
+        if batch_norm:
+            self.fc1 = nn.Linear(128, fc1_out_dim)
+        else:    
+            self.fc1 = nn.Linear(2048, fc1_out_dim)  
+
         self.fc2 = nn.Linear(fc1_out_dim, fc2_out_dim)
         # 6 is the number of classes
         self.fc3 = nn.Linear(fc2_out_dim, 6) 
 
         self.relu = nn.ReLU()
         self.dropout = nn.Dropout(0.1)
-        # For Q2.2 initialize batch normalization
         
+        # For Q2.2 initialize batch normalization
+        self.mlp_batch_norm = nn.BatchNorm1d(fc1_out_dim)
+        self.flatten2_2 = nn.AdaptiveAvgPool2d((1,1))
 
     def forward(self, x):
         x = x.reshape(x.shape[0], 3, 48, -1)
@@ -88,18 +95,22 @@ class CNN(nn.Module):
         x = self.conv_block3(x)
 
         # Flattent output of the last conv block
-        x = x.view(x.size(0), -1)
+        if not self.batch_norm:
+            x = x.view(x.size(0), -1)
+        else:
+        # For Q2.2 implement global average pooling
+           x = self.flatten2_2(x)
+           x = x.view(x.size(0), -1) 
         
         # Implement MLP part
         x = self.fc1(x)
         x = self.relu(x)
+        x = self.mlp_batch_norm(x)
         x = self.dropout(x)
         x = self.fc2(x)
         x = self.relu(x)
         x = self.fc3(x)
 
-        # For Q2.2 implement global average pooling
-    
         return F.log_softmax(x, dim=1)
  
 
@@ -154,7 +165,10 @@ def plot(epochs, plottable, ylabel='', name=''):
 
 
 def get_number_trainable_params(model):
-    raise NotImplementedError
+    model_parameters_cnn = filter(lambda p: p.requires_grad, model.parameters())
+    params_cnn = sum([np.prod(p.size()) for p in model_parameters_cnn])
+    return params_cnn
+    # raise NotImplementedError
 
 
 def plot_file_name_sufix(opt, exlude):
