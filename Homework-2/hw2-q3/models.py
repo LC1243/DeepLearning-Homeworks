@@ -88,6 +88,23 @@ class Encoder(nn.Module):
         #   (after passing them to the LSTM)
         #############################################
         
+        # Step 1: Embed the input sequences
+        embedded = self.embedding(src)  # (batch_size, max_src_len, hidden_size)
+
+        # Step 2: Apply dropout
+        embedded = self.dropout(embedded)
+
+        # Step 3: Pack the sequences for the LSTM
+        packed_embedded = pack(embedded, lengths.cpu(), batch_first=True, enforce_sorted=False)
+
+        # Step 4: Pass through the LSTM
+        packed_outputs, final_hidden = self.lstm(packed_embedded)
+
+        # Step 5: Unpack the outputs
+        encoder_outputs, _ = unpack(packed_outputs, batch_first=True)  # (batch_size, max_src_len, num_directions * hidden_size)
+
+        return encoder_outputs, final_hidden
+        
 
         #############################################
         # END OF YOUR CODE
@@ -95,7 +112,8 @@ class Encoder(nn.Module):
         # enc_output: (batch_size, max_src_len, hidden_size)
         # final_hidden: tuple with 2 tensors
         # each tensor is (num_layers * num_directions, batch_size, hidden_size)
-        raise NotImplementedError("Add your implementation.")
+        
+        # raise NotImplementedError("Add your implementation.")
 
 
 class Decoder(nn.Module):
@@ -158,7 +176,34 @@ class Decoder(nn.Module):
         #         src_lengths,
         #     )
         #############################################
+        batch_size, max_tgt_len = tgt.size(0), tgt.size(1)
+        outputs = torch.zeros(batch_size, max_tgt_len, self.hidden_size, device=tgt.device)
+
+        # Initial input to the decoder is the start-of-sequence token (assumed to be the first token)
+        input_t = tgt[:, 0].unsqueeze(1)  # (batch_size, 1)
+
+        for t in range(max_tgt_len):
+            # Step 1: Embed the input token
+            input_t_embedded = self.dropout(self.embedding(input_t))  # (batch_size, 1, hidden_size)
+
+            # Step 2: Pass the embedded input and previous hidden states to the LSTM
+            output, dec_state = self.lstm(input_t_embedded, dec_state)  # output: (batch_size, 1, hidden_size)
+
+            # Step 3: Calculate attention if applicable
+            if self.attn is not None:
+                print("Not implemented")
+                #attn_out = self.attn(output, encoder_outputs, src_lengths)  # Get attention context
+                #output = output + attn_out.unsqueeze(1)  # Combine LSTM output with attention output
+
+            # Step 4: Store the output
+            outputs[:, t, :] = output.squeeze(1)  # (batch_size, hidden_size)
+
+            # Step 5: Prepare the next input (next token)
+            # If we are in the last time step, we don't need to prepare next input.
+            if t < max_tgt_len - 1:
+                input_t = tgt[:, t + 1].unsqueeze(1)  # (batch_size, 1)
         
+        return outputs, dec_state
 
         #############################################
         # END OF YOUR CODE
@@ -166,7 +211,8 @@ class Decoder(nn.Module):
         # outputs: (batch_size, max_tgt_len, hidden_size)
         # dec_state: tuple with 2 tensors
         # each tensor is (num_layers, batch_size, hidden_size)
-        raise NotImplementedError("Add your implementation.")
+        
+        # raise NotImplementedError("Add your implementation.")
 
 
 class Seq2Seq(nn.Module):
