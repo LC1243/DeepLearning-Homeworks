@@ -28,7 +28,7 @@ class ConvBlock(nn.Module):
         super().__init__()
 
         # Q2.1. Initialize convolution, maxpool, activation and dropout layers 
-        self.conv = nn.Conv2d(in_channels, out_channels, kernel_size, padding)
+        self.conv = nn.Conv2d(in_channels, out_channels, kernel_size, padding=padding)
         self.activation = nn.ReLU()
         self.maxpool = nn.MaxPool2d(kernel_size=2, stride=2) if maxpool else nn.Identity()
         self.dropout = nn.Dropout(dropout)
@@ -60,9 +60,9 @@ class CNN(nn.Module):
         self.batch_norm = batch_norm
 
         # Initialize convolutional blocks
-        self.conv_block1 = ConvBlock(channels[0], channels[1], 3, dropout=dropout_prob, batch_norm=batch_norm, maxpool=maxpool, padding=1)
-        self.conv_block2 = ConvBlock(channels[1], channels[2], 3, dropout=dropout_prob, batch_norm=batch_norm, maxpool=maxpool, padding=1)
-        self.conv_block3 = ConvBlock(channels[2], channels[3], 3, dropout=dropout_prob, batch_norm=batch_norm, maxpool=maxpool, padding=1)
+        self.conv_block1 = ConvBlock(channels[0], channels[1], 3, padding=1, maxpool=maxpool, batch_norm=batch_norm, dropout=dropout_prob)
+        self.conv_block2 = ConvBlock(channels[1], channels[2], 3, padding=1, maxpool=maxpool, batch_norm=batch_norm, dropout=dropout_prob)
+        self.conv_block3 = ConvBlock(channels[2], channels[3], 3, padding=1, maxpool=maxpool, batch_norm=batch_norm, dropout=dropout_prob)
         
         # Initialize layers for the MLP block
         
@@ -73,7 +73,7 @@ class CNN(nn.Module):
         if batch_norm:
             self.fc1 = nn.Linear(128, fc1_out_dim)
         else:    
-            self.fc1 = nn.Linear(2048, fc1_out_dim)  
+            self.fc1 = nn.Linear(4608, fc1_out_dim)  
 
         self.fc2 = nn.Linear(fc1_out_dim, fc2_out_dim)
         # 6 is the number of classes
