@@ -70,7 +70,7 @@ def train(data, model, lr, n_epochs, checkpoint_name, max_len=50):
             optimizer.zero_grad()
             outputs, _ = model(src, src_lengths, tgt)
             loss = criterion(
-                outputs.reshape(-1, outputs.shape[-1]), tgt[:, 1:].reshape(-1)
+                outputs[:, :-1, :].reshape(-1, outputs.shape[-1]), tgt[:, 1:].reshape(-1)
             )
             loss.backward()
             optimizer.step()
