@@ -24,10 +24,11 @@ class BahdanauAttention(nn.Module):
         self.Ws = nn.Linear(hidden_size, hidden_size)
         self.Wh = nn.Linear(hidden_size, hidden_size)
         self.v = nn.Linear(hidden_size, 1)
+        self.fc_out = nn.Linear(hidden_size * 2, hidden_size)
         #raise NotImplementedError("Add your implementation.")
 
     def forward(self, query, encoder_outputs, src_lengths):
-        """
+        """             (batch_size,           1, hidden_size) 
         query:          (batch_size, max_tgt_len, hidden_size)
         encoder_outputs:(batch_size, max_src_len, hidden_size)
         src_lengths:    (batch_size)
@@ -38,29 +39,25 @@ class BahdanauAttention(nn.Module):
         batch_size, max_src_len, hidden_size = encoder_outputs.size()
         max_tgt_len = query.size(1)
 
-        scores = []
-        for t in range(max_tgt_len):
-            # Reshape the query tensor for broadcasting
-            query_t = query[:, t, :].unsqueeze(1)  # (batch_size, 1, hidden_size)
+        # Compute alignment scores
+        alignment_scores = self.v(torch.tanh(self.Ws(query) + self.Wh(encoder_outputs)))
 
-            # Compute alignment scores
-            score_et = self.v(torch.tanh(self.Ws(query_t) + self.Wh(encoder_outputs)))
-            scores.append(score_et)
-
-        # (batch_size, max_tgt_len, max_src_len)
-        scores = torch.cat(scores, dim=1) 
+        alignment_scores = alignment_scores.squeeze(-1)
 
         # Mask out padding tokens
-        mask = self.sequence_mask(src_lengths).unsqueeze(1)  # (batch_size, 1, max_src_len)
-        scores = scores.masked_fill(~mask, float('-inf'))  # Set scores of padded elements to -inf
+        mask = self.sequence_mask(src_lengths) 
+        alignment_scores = alignment_scores.masked_fill(~mask, float('-inf'))  
 
-        # Compute attention weights
-        attn_weights = torch.softmax(scores, dim=-1)  # (batch_size, max_tgt_len, max_src_len)
+        # Compute attention weights: 
+        attn_weights = torch.softmax(alignment_scores, dim=-1) 
 
-        context_vector = torch.bmm(attn_weights, encoder_outputs) 
+        context_vector = torch.bmm(attn_weights.unsqueeze(1), encoder_outputs) 
 
-        # (batch_size, max_tgt_len, hidden_size)
-        return context_vector
+        output = torch.cat((context_vector, query), dim=-1)  
+
+        output = torch.tanh(self.fc_out(output))
+
+        return output
         #raise NotImplementedError("Add your implementation.")
 
     def sequence_mask(self, lengths):
@@ -173,7 +170,7 @@ class Decoder(nn.Module):
         self.attn = attn
 
         # Linear layer to combine context and LSTM output
-        self.fc_out = nn.Linear(hidden_size * 2, hidden_size)
+        # self.fc_out = nn.Linear(hidden_size * 2, hidden_size)
 
     def forward(
         self,
@@ -215,7 +212,7 @@ class Decoder(nn.Module):
         input_t = tgt[:, 0].unsqueeze(1)  # (batch_size, 1)
 
         # Get all attention outputs at once
-        attn_out_all = self.attn(tgt[:, :max_tgt_len, :], encoder_outputs, src_lengths)  # (batch_size, max_tgt_len, hidden_size)
+        # attn_out_all = self.attn(tgt[:, :max_tgt_len, :], encoder_outputs, src_lengths)  # (batch_size, max_tgt_len, hidden_size)
 
         for t in range(max_tgt_len):
             # Step 1: Embed the input token
@@ -223,16 +220,16 @@ class Decoder(nn.Module):
 
             # Step 2: Pass the embedded input and previous hidden states to the LSTM
             output, dec_state = self.lstm(input_t_embedded, dec_state)  # output: (batch_size, 1, hidden_size)
-
+            
             # Step 3: Calculate attention if applicable
             if self.attn is not None:
-                 # Use the entire attention output for the current timestep
-                attn_out = attn_out_all[:, t, :]  # Get the attention output for the current timestep
-
-                # Concatenate attention output with LSTM output
-                output = torch.cat((attn_out, output.squeeze(1)), dim=1)  # (batch_size, 2 * hidden_size)
-                output = torch.tanh(self.fc_out(output))
-
+                #FIXME: Output should have shape (batch_size, max_tgt_len, hidden_size)
+                #print("Output: ", output.shape)
+                output = self.attn(
+                output,
+                encoder_outputs,
+                src_lengths,
+            )
 
             # Step 4: Store the output
             outputs[:, t, :] = output.squeeze(1)  # (batch_size, hidden_size)
